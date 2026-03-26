@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analiza Consumului de Antibiotice - DDD 2025</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1a5276;
+    --secondary: #2e86c1;
+    --accent: #e74c3c;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --text: #2c3e50;
+    --border: #dce1e8;
+    --green: #27ae60;
+    --orange: #f39c12;
+    --purple: #8e44ad;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+  .header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 2rem 2rem 1.5rem; }
+  .header h1 { font-size: 1.6rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .header p { opacity: 0.85; font-size: 0.95rem; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .kpi { background: var(--card); border-radius: 12px; padding: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 4px solid var(--secondary); }
+  .kpi .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #7f8c8d; margin-bottom: 0.3rem; }
+  .kpi .value { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+  .kpi .sub { font-size: 0.8rem; color: #95a5a6; margin-top: 0.2rem; }
+  .kpi.accent { border-left-color: var(--accent); }
+  .kpi.green { border-left-color: var(--green); }
+  .kpi.orange { border-left-color: var(--orange); }
+  .kpi.purple { border-left-color: var(--purple); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+  .card { background: var(--card); border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card h3 { font-size: 1rem; color: var(--primary); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--bg); }
+  .full-width { grid-column: 1 / -1; }
+  .chart-container { position: relative; height: 350px; }
+  .chart-container.tall { height: 500px; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  table.data th { background: var(--primary); color: white; padding: 0.6rem 0.8rem; text-align: left; font-weight: 500; position: sticky; top: 0; }
+  table.data td { padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border); }
+  table.data tr:hover { background: #eaf2f8; }
+  table.data tr.separator { background: #fdebd0; font-weight: 700; }
+  .table-scroll { max-height: 500px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); }
+  .bar-inline { display: inline-block; height: 14px; background: var(--secondary); border-radius: 3px; margin-right: 6px; vertical-align: middle; min-width: 2px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600; }
+  .tag.oral { background: #d5f5e3; color: #1e8449; }
+  .tag.parenteral { background: #d6eaf8; color: #1a5276; }
+  .tag.inhal { background: #f5eef8; color: #6c3483; }
+  .tag.reserve { background: #fadbd8; color: #922b21; }
+  .methodology { background: #fef9e7; border: 1px solid #f9e79f; border-radius: 8px; padding: 1rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+  .methodology strong { color: var(--primary); }
+  .footer { text-align: center; padding: 2rem; color: #95a5a6; font-size: 0.8rem; }
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="max-width:1400px;margin:0 auto;">
+    <h1>Analiza Consumului de Antibiotice &mdash; DDD 2025</h1>
+    <p>Doza Zilnică Definită (DDD) calculată conform metodologiei OMS ATC/DDD &bull; Sursa: WHO ATC/DDD Index 2025</p>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="methodology">
+  <strong>Metodologie:</strong> DDD = Cantitatea totală eliberată (g) &divide; DDD OMS.
+  Valorile DDD OMS sunt preluate din <em>WHO ATC/DDD Index</em> (atcddd.fhi.no, actualizat ianuarie 2026).
+  Pentru produsele combinate, DDD se referă la componenta antibiotică principală. Pentru colistină, calculul utilizează MU (milioane unități).
+</div>
+
+<div class="kpi-row" id="kpis"></div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Top 15 Antibiotice după DDD Consumate</h3>
+    <div class="chart-container"><canvas id="chartTop15"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Distribuția DDD pe Grupe Farmacoterapeutice</h3>
+    <div class="chart-container"><canvas id="chartGroups"></canvas></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Antibiotice Standard vs. Rezervă (DDD)</h3>
+    <div class="chart-container"><canvas id="chartReserve"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Distribuție Oral vs. Parenteral (DDD)</h3>
+    <div class="chart-container"><canvas id="chartRoute"></canvas></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Top 10 Antibiotice după Valoare (RON)</h3>
+    <div class="chart-container"><canvas id="chartValue"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>Cost per DDD (RON) &mdash; Top 15 cele mai scumpe</h3>
+    <div class="chart-container"><canvas id="chartCostDDD"></canvas></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <h3>Toate Antibioticele &mdash; Tabel Complet</h3>
+  <div class="table-scroll">
+    <table class="data" id="fullTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Antibiotic</th>
+          <th>Grupă</th>
+          <th>Cale</th>
+          <th style="text-align:right">Cantitate</th>
+          <th style="text-align:right">Valoare RON</th>
+          <th style="text-align:right">DDD OMS</th>
+          <th style="text-align:right">DDD Calculat</th>
+          <th style="text-align:right">Cost/DDD (RON)</th>
+          <th>DDD</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  Generat automat &bull; Sursa datelor: WHO ATC/DDD Index 2025 &bull; Metodologia Determinării DDD, USMF Chișinău 2023
+</div>
+
+<script>
+const drugs = [
+  {name:"Amoxicilină/Clavulanat 1g/200mg IV",group:"Beta-lactamine + inhibitor",route:"P",qty:29629,ron:478760.18,gPerUnit:1.0,dddOms:3.0,reserve:false},
+  {name:"Amoxicilină/Clavulanat 500/125mg cpr",group:"Beta-lactamine + inhibitor",route:"O",qty:280,ron:155.65,gPerUnit:0.5,dddOms:1.5,reserve:false},
+  {name:"Amoxicilină/Clavulanat 875/125mg cpr",group:"Beta-lactamine + inhibitor",route:"O",qty:797,ron:685.67,gPerUnit:0.875,dddOms:1.5,reserve:false},
+  {name:"Amoxicilină/Clavulanat 400mg/5ml susp",group:"Beta-lactamine + inhibitor",route:"O",qty:44,ron:816.28,gPerUnit:5.6,dddOms:1.5,reserve:false},
+  {name:"Amoxicilină/Clavulanat 600mg/5ml susp",group:"Beta-lactamine + inhibitor",route:"O",qty:43,ron:1685.37,gPerUnit:12.0,dddOms:1.5,reserve:false},
+  {name:"Amoxicilină 500mg",group:"Peniciline",route:"O",qty:8551,ron:4125.73,gPerUnit:0.5,dddOms:1.5,reserve:false},
+  {name:"Ampicilină 500mg fl inj",group:"Peniciline",route:"P",qty:367,ron:391.08,gPerUnit:0.5,dddOms:6.0,reserve:false},
+  {name:"Ampicilină 500mg caps",group:"Peniciline",route:"O",qty:1830,ron:877.62,gPerUnit:0.5,dddOms:2.0,reserve:false},
+  {name:"Ampicilină 1000mg fl inj",group:"Peniciline",route:"P",qty:12070,ron:22119.22,gPerUnit:1.0,dddOms:6.0,reserve:false},
+  {name:"Ampicilină/Sulbactam 1g/500mg",group:"Beta-lactamine + inhibitor",route:"P",qty:2563,ron:44532.19,gPerUnit:1.0,dddOms:6.0,reserve:false},
+  {name:"Azitromicină 500mg cpr",group:"Macrolide",route:"O",qty:950,ron:2610.50,gPerUnit:0.5,dddOms:0.3,reserve:false},
+  {name:"Azitromicină 500mg sol.perf.",group:"Macrolide",route:"P",qty:299,ron:9775.66,gPerUnit:0.5,dddOms:0.5,reserve:false},
+  {name:"Azitromicină 200mg/5ml susp",group:"Macrolide",route:"O",qty:380,ron:5506.86,gPerUnit:0.8,dddOms:0.3,reserve:false},
+  {name:"Amikacină 500mg/2ml inj",group:"Aminoglicozide",route:"P",qty:11737,ron:632701.59,gPerUnit:0.5,dddOms:1.0,reserve:false},
+  {name:"Cefepimă 1g inj",group:"Cefalosporine",route:"P",qty:1873,ron:26897.30,gPerUnit:1.0,dddOms:4.0,reserve:false},
+  {name:"Ceftriaxon 1g",group:"Cefalosporine",route:"P",qty:134736,ron:269097.13,gPerUnit:1.0,dddOms:2.0,reserve:false},
+  {name:"Ceftriaxon 250mg IV",group:"Cefalosporine",route:"P",qty:196,ron:737.06,gPerUnit:0.25,dddOms:2.0,reserve:false},
+  {name:"Cefotaxim 1g",group:"Cefalosporine",route:"P",qty:183,ron:558.52,gPerUnit:1.0,dddOms:4.0,reserve:false},
+  {name:"Ceftazidimă 1g",group:"Cefalosporine",route:"P",qty:16326,ron:241571.86,gPerUnit:1.0,dddOms:4.0,reserve:false},
+  {name:"Cefaclor 250mg/5ml",group:"Cefalosporine",route:"O",qty:40,ron:0.44,gPerUnit:3.75,dddOms:1.0,reserve:false},
+  {name:"Cefuroximă 750mg IV",group:"Cefalosporine",route:"P",qty:7954,ron:21427.08,gPerUnit:0.75,dddOms:3.0,reserve:false},
+  {name:"Cefuroximă 1.5g IV",group:"Cefalosporine",route:"P",qty:34176,ron:154626.42,gPerUnit:1.5,dddOms:3.0,reserve:false},
+  {name:"Cefuroximă 500mg cpr",group:"Cefalosporine",route:"O",qty:3547,ron:6540.60,gPerUnit:0.5,dddOms:0.5,reserve:false},
+  {name:"Cefuroxim 125mg/5ml susp",group:"Cefalosporine",route:"O",qty:52,ron:699.31,gPerUnit:2.5,dddOms:0.5,reserve:false},
+  {name:"Ceftarolină 600mg",group:"Cefalosporine",route:"P",qty:20,ron:5077.74,gPerUnit:0.6,dddOms:1.2,reserve:false},
+  {name:"Ciprofloxacin IV (Ciprinol) 10ml",group:"Fluorochinolone",route:"P",qty:49392,ron:143545.91,gPerUnit:0.1,dddOms:0.8,reserve:false},
+  {name:"Ciprofloxacin 500mg cpr",group:"Fluorochinolone",route:"O",qty:6052,ron:2731.70,gPerUnit:0.5,dddOms:1.0,reserve:false},
+  {name:"Clindamicină 300mg/2ml inj",group:"Lincosamide",route:"P",qty:33749,ron:137083.51,gPerUnit:0.3,dddOms:1.8,reserve:false},
+  {name:"Clindamicină 300mg cpr",group:"Lincosamide",route:"O",qty:361,ron:424.70,gPerUnit:0.3,dddOms:1.2,reserve:false},
+  {name:"Claritromicină 125mg/5ml susp",group:"Macrolide",route:"O",qty:61,ron:1482.74,gPerUnit:1.5,dddOms:0.5,reserve:false},
+  {name:"Claritromicină 250mg/5ml susp",group:"Macrolide",route:"O",qty:5,ron:147.04,gPerUnit:3.0,dddOms:0.5,reserve:false},
+  {name:"Claritromicină 500mg cpr",group:"Macrolide",route:"O",qty:255,ron:275.89,gPerUnit:0.5,dddOms:0.5,reserve:false},
+  {name:"Cefiximă 200mg",group:"Cefalosporine",route:"O",qty:10677,ron:39842.02,gPerUnit:0.2,dddOms:0.4,reserve:false},
+  {name:"Cefoperazonă/Sulbactam 1g/1g",group:"Cefalosporine",route:"P",qty:38482,ron:1075716.08,gPerUnit:1.0,dddOms:4.0,reserve:false},
+  {name:"Cefazolin 1g",group:"Cefalosporine",route:"P",qty:9950,ron:22274.03,gPerUnit:1.0,dddOms:3.0,reserve:false},
+  {name:"Doxiciclină 100mg",group:"Tetracicline",route:"O",qty:4677,ron:1751.58,gPerUnit:0.1,dddOms:0.1,reserve:false},
+  {name:"Eritromicină 200mg",group:"Macrolide",route:"O",qty:1157,ron:834.20,gPerUnit:0.2,dddOms:1.0,reserve:false},
+  {name:"Ertapenem 1g",group:"Carbapeneme",route:"P",qty:1874,ron:174224.49,gPerUnit:1.0,dddOms:1.0,reserve:false},
+  {name:"Fosfomicină 3g plicuri",group:"Alte antibacteriene",route:"O",qty:436,ron:6210.39,gPerUnit:3.0,dddOms:3.0,reserve:false},
+  {name:"Gentamicină 80mg/2ml inj",group:"Aminoglicozide",route:"P",qty:21295,ron:19869.74,gPerUnit:0.08,dddOms:0.24,reserve:false},
+  {name:"Imipenem/Cilastatin 500/500mg",group:"Carbapeneme",route:"P",qty:798,ron:16591.23,gPerUnit:0.5,dddOms:2.0,reserve:false},
+  {name:"Levofloxacin 500mg cpr",group:"Fluorochinolone",route:"O",qty:1719,ron:3472.35,gPerUnit:0.5,dddOms:0.5,reserve:false},
+  {name:"Levofloxacin 500mg IV",group:"Fluorochinolone",route:"P",qty:10220,ron:131731.50,gPerUnit:0.5,dddOms:0.5,reserve:false},
+  {name:"Meropenem 500mg",group:"Carbapeneme",route:"P",qty:2782,ron:46032.71,gPerUnit:0.5,dddOms:3.0,reserve:false},
+  {name:"Meropenem 1g",group:"Carbapeneme",route:"P",qty:57159,ron:564042.25,gPerUnit:1.0,dddOms:3.0,reserve:false},
+  {name:"Metronidazol 5mg/ml 100ml IV",group:"Derivați de imidazol",route:"P",qty:55671,ron:249387.77,gPerUnit:0.5,dddOms:1.5,reserve:false},
+  {name:"Metronidazol 250mg",group:"Derivați de imidazol",route:"O",qty:6724,ron:6077.67,gPerUnit:0.25,dddOms:2.0,reserve:false},
+  {name:"Moxifloxacină 400mg/250ml IV",group:"Fluorochinolone",route:"P",qty:4203,ron:118765.89,gPerUnit:0.4,dddOms:0.4,reserve:false},
+  {name:"Moxifloxacină 400mg cpr",group:"Fluorochinolone",route:"O",qty:112,ron:534.71,gPerUnit:0.4,dddOms:0.4,reserve:false},
+  {name:"Norfloxacină 400mg",group:"Fluorochinolone",route:"O",qty:192,ron:151.88,gPerUnit:0.4,dddOms:0.8,reserve:false},
+  {name:"Oxacilină 1g fl",group:"Peniciline",route:"P",qty:2216,ron:19505.62,gPerUnit:1.0,dddOms:2.0,reserve:false},
+  {name:"Ofloxacină 200mg cpr",group:"Fluorochinolone",route:"O",qty:16,ron:27.90,gPerUnit:0.2,dddOms:0.4,reserve:false},
+  {name:"Penicilina G 1MU",group:"Peniciline",route:"P",qty:1548,ron:16298.60,gPerUnit:0.6,dddOms:3.6,reserve:false},
+  {name:"Piperacilină/Tazobactam 4g/0.5g",group:"Beta-lactamine + inhibitor",route:"P",qty:7113,ron:69367.70,gPerUnit:4.0,dddOms:14.0,reserve:false},
+  {name:"Rifampicină 300mg cpr",group:"Alte antibacteriene",route:"O",qty:582,ron:371.12,gPerUnit:0.3,dddOms:0.6,reserve:false},
+  {name:"TMP/SMX 400/80mg cpr",group:"Sulfonamide + trimetoprim",route:"O",qty:508,ron:182.73,gPerUnit:0.48,dddOms:1.92,reserve:false},
+  {name:"TMP/SMX 400/80mg fiole IV",group:"Sulfonamide + trimetoprim",route:"P",qty:529,ron:7216.71,gPerUnit:0.48,dddOms:1.92,reserve:false},
+  {name:"Teicoplanină 400mg",group:"Glicopeptide",route:"P",qty:439,ron:53908.88,gPerUnit:0.4,dddOms:0.4,reserve:false},
+  {name:"Tobramicină 300mg nebulizare",group:"Aminoglicozide",route:"Inhal",qty:229,ron:12870.09,gPerUnit:0.3,dddOms:0.3,reserve:false},
+  {name:"Vancomicină 1g",group:"Glicopeptide",route:"P",qty:13038,ron:218219.22,gPerUnit:1.0,dddOms:2.0,reserve:false},
+  {name:"Aztreonam 1g",group:"Monobactame",route:"P",qty:2973,ron:159798.82,gPerUnit:1.0,dddOms:4.0,reserve:true},
+  {name:"Aztreonam/Avibactam 1g/0.5g",group:"Monobactame",route:"P",qty:939,ron:937357.53,gPerUnit:1.0,dddOms:6.0,reserve:true},
+  {name:"Colistină 1MU fl",group:"Polimixine",route:"P",qty:20663,ron:661589.76,gPerUnit:1.0,dddOms:3.0,reserve:true},
+  {name:"Cefiderocol 1g (Fetcroja)",group:"Cefalosporine",route:"P",qty:1649,ron:1192907.68,gPerUnit:1.0,dddOms:6.0,reserve:true},
+  {name:"Ceftazidimă/Avibactam 2g/0.5g",group:"Cefalosporine",route:"P",qty:3811,ron:1959178.39,gPerUnit:2.0,dddOms:6.0,reserve:true},
+  {name:"Imipenem/Cilastatin/Relebactam",group:"Carbapeneme",route:"P",qty:313,ron:187237.64,gPerUnit:0.5,dddOms:2.0,reserve:true},
+  {name:"Eravacicilină 50mg (Xerava)",group:"Tetracicline",route:"P",qty:56,ron:36454.21,gPerUnit:0.05,dddOms:0.14,reserve:true},
+  {name:"Fosfomicină IV 4g (Fomcyt)",group:"Alte antibacteriene",route:"P",qty:1164,ron:180754.39,gPerUnit:4.0,dddOms:8.0,reserve:true},
+  {name:"Linezolid 600mg",group:"Oxazolidinone",route:"P",qty:2877,ron:335340.47,gPerUnit:0.6,dddOms:1.2,reserve:true},
+  {name:"Tigeciclină 50mg",group:"Tetracicline",route:"P",qty:3317,ron:136099.30,gPerUnit:0.05,dddOms:0.1,reserve:true},
+];
+
+// Calculate DDD for each
+drugs.forEach(d => {
+  d.totalG = d.qty * d.gPerUnit;
+  d.ddd = d.totalG / d.dddOms;
+  d.costPerDDD = d.ddd > 0 ? d.ron / d.ddd : 0;
+});
+
+// ---- KPIs ----
+const totalDDD = drugs.reduce((s,d) => s + d.ddd, 0);
+const totalRON = drugs.reduce((s,d) => s + d.ron, 0);
+const standardDDD = drugs.filter(d=>!d.reserve).reduce((s,d)=>s+d.ddd,0);
+const reserveDDD = drugs.filter(d=>d.reserve).reduce((s,d)=>s+d.ddd,0);
+const reserveRON = drugs.filter(d=>d.reserve).reduce((s,d)=>s+d.ron,0);
+const oralDDD = drugs.filter(d=>d.route==="O").reduce((s,d)=>s+d.ddd,0);
+const parenteralDDD = drugs.filter(d=>d.route==="P").reduce((s,d)=>s+d.ddd,0);
+
+const fmt = n => n.toLocaleString('ro-RO', {maximumFractionDigits:0});
+const fmt2 = n => n.toLocaleString('ro-RO', {maximumFractionDigits:2});
+
+document.getElementById('kpis').innerHTML = `
+  <div class="kpi"><div class="label">Total DDD Consumate</div><div class="value">${fmt(totalDDD)}</div><div class="sub">${drugs.length} produse analizate</div></div>
+  <div class="kpi accent"><div class="label">Valoare Totală</div><div class="value">${fmt(totalRON)}</div><div class="sub">RON (lei)</div></div>
+  <div class="kpi green"><div class="label">Cost Mediu / DDD</div><div class="value">${fmt2(totalRON/totalDDD)}</div><div class="sub">RON per DDD</div></div>
+  <div class="kpi orange"><div class="label">DDD Antibiotice Rezervă</div><div class="value">${fmt(reserveDDD)}</div><div class="sub">${(reserveDDD/totalDDD*100).toFixed(1)}% din total</div></div>
+  <div class="kpi purple"><div class="label">Parenteral vs Oral</div><div class="value">${(parenteralDDD/totalDDD*100).toFixed(0)}% / ${(oralDDD/totalDDD*100).toFixed(0)}%</div><div class="sub">P: ${fmt(parenteralDDD)} &bull; O: ${fmt(oralDDD)}</div></div>
+`;
+
+// ---- Colors ----
+const palette = ['#2e86c1','#e74c3c','#27ae60','#f39c12','#8e44ad','#1abc9c','#d35400','#2c3e50','#c0392b','#16a085','#2980b9','#f1c40f','#9b59b6','#e67e22','#34495e'];
+
+// ---- Top 15 Chart ----
+const top15 = [...drugs].sort((a,b)=>b.ddd-a.ddd).slice(0,15);
+new Chart(document.getElementById('chartTop15'), {
+  type: 'bar',
+  data: {
+    labels: top15.map(d=>d.name.length>30 ? d.name.substring(0,28)+'...' : d.name),
+    datasets: [{
+      data: top15.map(d=>Math.round(d.ddd)),
+      backgroundColor: top15.map(d=>d.reserve ? '#e74c3c' : '#2e86c1'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw.toLocaleString('ro-RO')} DDD` }}
+    },
+    scales: { x: { title: { display: true, text: 'Număr DDD' }}}
+  }
+});
+
+// ---- Groups Pie ----
+const groupMap = {};
+drugs.forEach(d => {
+  if (!groupMap[d.group]) groupMap[d.group] = 0;
+  groupMap[d.group] += d.ddd;
+});
+const groupEntries = Object.entries(groupMap).sort((a,b)=>b[1]-a[1]);
+
+new Chart(document.getElementById('chartGroups'), {
+  type: 'doughnut',
+  data: {
+    labels: groupEntries.map(e=>e[0]),
+    datasets: [{
+      data: groupEntries.map(e=>Math.round(e[1])),
+      backgroundColor: palette.slice(0, groupEntries.length),
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 }}},
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw.toLocaleString('ro-RO')} DDD (${(ctx.raw/totalDDD*100).toFixed(1)}%)` }}
+    }
+  }
+});
+
+// ---- Reserve vs Standard ----
+const reserveGroups = {};
+drugs.filter(d=>d.reserve).forEach(d => {
+  if (!reserveGroups[d.name]) reserveGroups[d.name] = 0;
+  reserveGroups[d.name] += d.ddd;
+});
+const rEntries = Object.entries(reserveGroups).sort((a,b)=>b[1]-a[1]);
+
+new Chart(document.getElementById('chartReserve'), {
+  type: 'bar',
+  data: {
+    labels: ['Standard','Rezervă'],
+    datasets: [{
+      data: [Math.round(standardDDD), Math.round(reserveDDD)],
+      backgroundColor: ['#2e86c1','#e74c3c'],
+      borderRadius: 6,
+      barThickness: 60,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw.toLocaleString('ro-RO')} DDD` }},
+      subtitle: { display: true, text: `Rezervă: ${fmt(reserveRON)} RON (${(reserveRON/totalRON*100).toFixed(1)}% din valoare)`, font: { size: 12 }}
+    },
+    scales: { y: { title: { display: true, text: 'DDD' }}}
+  }
+});
+
+// ---- Route chart ----
+const routeData = {O: oralDDD, P: parenteralDDD};
+const inhalDDD = drugs.filter(d=>d.route==='Inhal').reduce((s,d)=>s+d.ddd,0);
+if (inhalDDD > 0) routeData['Inhal'] = inhalDDD;
+
+new Chart(document.getElementById('chartRoute'), {
+  type: 'pie',
+  data: {
+    labels: Object.keys(routeData).map(k => k==='O'?'Oral':k==='P'?'Parenteral':'Inhalare'),
+    datasets: [{
+      data: Object.values(routeData).map(v=>Math.round(v)),
+      backgroundColor: ['#27ae60','#2e86c1','#8e44ad'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw.toLocaleString('ro-RO')} DDD (${(ctx.raw/totalDDD*100).toFixed(1)}%)` }}
+    }
+  }
+});
+
+// ---- Top 10 by Value ----
+const topVal = [...drugs].sort((a,b)=>b.ron-a.ron).slice(0,10);
+new Chart(document.getElementById('chartValue'), {
+  type: 'bar',
+  data: {
+    labels: topVal.map(d=>d.name.length>28 ? d.name.substring(0,26)+'...' : d.name),
+    datasets: [{
+      data: topVal.map(d=>Math.round(d.ron)),
+      backgroundColor: topVal.map(d=>d.reserve ? '#e74c3c' : '#f39c12'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw.toLocaleString('ro-RO')} RON` }}
+    },
+    scales: { x: { title: { display: true, text: 'RON' }}}
+  }
+});
+
+// ---- Cost per DDD ----
+const topCost = [...drugs].filter(d=>d.ddd>5).sort((a,b)=>b.costPerDDD-a.costPerDDD).slice(0,15);
+new Chart(document.getElementById('chartCostDDD'), {
+  type: 'bar',
+  data: {
+    labels: topCost.map(d=>d.name.length>28 ? d.name.substring(0,26)+'...' : d.name),
+    datasets: [{
+      data: topCost.map(d=>Math.round(d.costPerDDD*100)/100),
+      backgroundColor: topCost.map(d=>d.reserve ? '#e74c3c' : '#8e44ad'),
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw.toLocaleString('ro-RO',{minimumFractionDigits:2})} RON/DDD` }}
+    },
+    scales: { x: { title: { display: true, text: 'RON per DDD' }}}
+  }
+});
+
+// ---- Full Table ----
+const maxDDD = Math.max(...drugs.map(d=>d.ddd));
+const tbody = document.querySelector('#fullTable tbody');
+let idx = 0;
+
+// Standard drugs
+drugs.filter(d=>!d.reserve).sort((a,b)=>b.ddd-a.ddd).forEach(d => {
+  idx++;
+  const pct = d.ddd / maxDDD * 100;
+  const routeTag = d.route==='O' ? '<span class="tag oral">Oral</span>' :
+                   d.route==='P' ? '<span class="tag parenteral">Parenteral</span>' :
+                   '<span class="tag inhal">Inhalare</span>';
+  tbody.innerHTML += `<tr>
+    <td>${idx}</td>
+    <td><strong>${d.name}</strong></td>
+    <td>${d.group}</td>
+    <td>${routeTag}</td>
+    <td style="text-align:right">${fmt(d.qty)}</td>
+    <td style="text-align:right">${fmt2(d.ron)}</td>
+    <td style="text-align:right">${d.dddOms} g</td>
+    <td style="text-align:right"><strong>${fmt2(d.ddd)}</strong></td>
+    <td style="text-align:right">${fmt2(d.costPerDDD)}</td>
+    <td><div class="bar-inline" style="width:${Math.max(pct*0.8,1)}px"></div></td>
+  </tr>`;
+});
+
+// Separator
+tbody.innerHTML += `<tr class="separator"><td colspan="10">ANTIBIOTICE DE REZERVĂ</td></tr>`;
+
+drugs.filter(d=>d.reserve).sort((a,b)=>b.ddd-a.ddd).forEach(d => {
+  idx++;
+  const pct = d.ddd / maxDDD * 100;
+  tbody.innerHTML += `<tr>
+    <td>${idx}</td>
+    <td><strong>${d.name}</strong> <span class="tag reserve">Rezervă</span></td>
+    <td>${d.group}</td>
+    <td><span class="tag parenteral">Parenteral</span></td>
+    <td style="text-align:right">${fmt(d.qty)}</td>
+    <td style="text-align:right">${fmt2(d.ron)}</td>
+    <td style="text-align:right">${d.dddOms} g</td>
+    <td style="text-align:right"><strong>${fmt2(d.ddd)}</strong></td>
+    <td style="text-align:right">${fmt2(d.costPerDDD)}</td>
+    <td><div class="bar-inline" style="width:${Math.max(pct*0.8,1)}px;background:#e74c3c;"></div></td>
+  </tr>`;
+});
+</script>
+</body>
+</html>
