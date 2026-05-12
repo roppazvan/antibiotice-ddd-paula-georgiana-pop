@@ -278,6 +278,18 @@ tr:hover td { background: rgba(108,92,231,.04); }
 }
 .sources a { color: var(--blue); text-decoration: none; }
 .sources a:hover { text-decoration: underline; }
+
+/* Chart containers - CRITICAL: fixed height to prevent infinite stretching */
+.chart-box {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .chart-box { height: 260px; }
+  .chart-box.tall { height: 350px; }
+}
+.chart-box.tall { height: 400px; }
 .sources .note {
   margin-top: 16px;
   padding: 12px 16px;
@@ -465,12 +477,12 @@ ov += `<div class="kpi-grid">
 </div>`;
 
 ov += `<div class="grid-2">`;
-ov += `<div class="card"><h3>Distribuție pe Grupe — Spital vs Media UE <span class="badge badge-blue">2025</span></h3><canvas id="chartGroupsOV" height="300"></canvas></div>`;
-ov += `<div class="card"><h3>DDD pe Grupe — 2024 vs 2025 <span class="badge badge-purple">Comparație</span></h3><canvas id="chartYearsOV" height="300"></canvas></div>`;
+ov += `<div class="card"><h3>Distribuție pe Grupe — Spital vs Media UE <span class="badge badge-blue">2025</span></h3><div class="chart-box"><canvas id="chartGroupsOV"></canvas></div></div>`;
+ov += `<div class="card"><h3>DDD pe Grupe — 2024 vs 2025 <span class="badge badge-purple">Comparație</span></h3><div class="chart-box"><canvas id="chartYearsOV"></canvas></div></div>`;
 ov += `</div>`;
 ov += `<div class="grid-2">`;
-ov += `<div class="card"><h3>Antibiotice de Rezervă — 2024 vs 2025</h3><canvas id="chartResOV" height="300"></canvas></div>`;
-ov += `<div class="card"><h3>Top 15 Variații DDD (2025 − 2024)</h3><canvas id="chartChangesOV" height="300"></canvas></div>`;
+ov += `<div class="card"><h3>Antibiotice de Rezervă — 2024 vs 2025</h3><div class="chart-box tall"><canvas id="chartResOV"></canvas></div></div>`;
+ov += `<div class="card"><h3>Top 15 Variații DDD (2025 − 2024)</h3><div class="chart-box tall"><canvas id="chartChangesOV"></canvas></div></div>`;
 ov += `</div>`;
 document.getElementById('overview').innerHTML = ov;
 
@@ -503,7 +515,7 @@ gNames.forEach(g => {
 });
 gt += `<tr style="font-weight:700"><td>TOTAL</td><td class="num">100 %</td><td class="num">100 %</td><td class="num eu-highlight">100 %</td><td class="num">—</td></tr>`;
 gt += '</tbody></table></div></div>';
-gt += '<div class="card"><h3>Grafic Comparativ — Distribuție pe Grupe</h3><canvas id="chartGroupDetail" height="350"></canvas></div>';
+gt += '<div class="card"><h3>Grafic Comparativ — Distribuție pe Grupe</h3><div class="chart-box"><canvas id="chartGroupDetail"></canvas></div></div>';
 document.getElementById('groups').innerHTML = gt;
 
 // ===== DRUGS TAB =====
@@ -543,7 +555,7 @@ resDrugs.forEach(d => {
   rt += `<tr><td style="font-weight:600">${d.name}</td><td>${d.group}</td><td class="num">${d.ddd24!=null?fmt(d.ddd24):'—'}</td><td class="num" style="font-weight:600">${d.ddd25!=null?fmt(d.ddd25):'—'}</td><td class="num">${pillFor(ch)}</td></tr>`;
 });
 rt += '</tbody></table></div></div>';
-rt += '<div class="card" style="margin-top:16px"><h3>Grafic Antibiotice de Rezervă</h3><canvas id="chartResFull" height="350"></canvas></div>';
+rt += '<div class="card" style="margin-top:16px"><h3>Grafic Antibiotice de Rezervă</h3><div class="chart-box tall"><canvas id="chartResFull"></canvas></div></div>';
 document.getElementById('reserve').innerHTML = rt;
 
 // ===== SOURCES TAB =====
